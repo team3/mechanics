@@ -12,4 +12,4 @@ GET         /api/businesses/:term        controllers.BusinessesController.search
 
 POST        /api/businesses/:id          controllers.BusinessesController.save(id: String)
 
-    
+GET         /auth/signup                 controllers.AuthenticationController.startSignUp

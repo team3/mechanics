@@ -13,6 +13,7 @@ class ApplicationInitializer @Inject()(val reactiveMongoApi: ReactiveMongoApi) e
 
   def collection = reactiveMongoApi.db.collection[JSONCollection]("businesses")
 
+
   val businesses = List(
     Json.obj(
       "name" -> "B1",
