@@ -10,16 +10,15 @@ import play.api.i18n.MessagesApi
 import play.api.libs.json.Json
 import play.api.mvc._
 import play.modules.reactivemongo.{MongoController, ReactiveMongoApi, ReactiveMongoComponents}
+import reactivemongo.api.DB
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class BusinessesController @Inject()(val reactiveMongoApi: ReactiveMongoApi,
                                      val messagesApi: MessagesApi,
-                                     silhouette: Silhouette[JWTEnv])
-  extends Controller with MongoController with ReactiveMongoComponents {
-
-  val businessesRepository = new MongoDbBusinessesRepository(reactiveMongoApi)
+                                     val businessesRepository: MongoDbBusinessesRepository,
+                                     silhouette: Silhouette[JWTEnv]) extends Controller {
 
   def search(term: String) = Action.async { implicit request =>
     businessesRepository.find()
@@ -41,6 +40,8 @@ class BusinessesController @Inject()(val reactiveMongoApi: ReactiveMongoApi,
       Phone -> business.phone
     )
 
-    businessesRepository.update(BSONDocument(Id -> BSONObjectID(id)), document).map(le => Ok(Json.obj("success" -> le.ok)))
+    businessesRepository.update(BSONDocument(Id -> BSONObjectID(id)), document)
+      .map(result => Ok(Json.obj("success" -> result.ok)))
+      .recover { case e: Exception => Ok(Json.obj("error" -> e.getMessage)) }
   }
 }

@@ -5,8 +5,7 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
 import com.mohiva.play.silhouette.api.util.PasswordHasher
-import com.mohiva.play.silhouette.api.{Environment, LoginInfo, SignUpEvent, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.JWTAuthenticator
+import com.mohiva.play.silhouette.api.{LoginEvent, LoginInfo, SignUpEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import model.User
 import modules.JWTEnv
@@ -25,28 +24,23 @@ class AuthenticationController @Inject()(val messagesApi: MessagesApi,
 
 
   def signUp = Action.async { implicit request =>
-
-    // read user and password from configuration
     val email: String = "andr.parkhomenko1@gmail.com"
     val password: String = "password"
 
     val loginInfo = LoginInfo(CredentialsProvider.ID, email)
 
     userService.retrieve(loginInfo).flatMap {
-      case Some(user) => Future.successful(Ok(user.loginInfo.providerID + " - " + user.loginInfo.providerKey))
+      case Some(user) => Future.successful(Ok(user.name + " already there"))
       case None =>
-        val authInfo = passwordHasher.hash(password)
-
-        val user = User(userID = UUID.randomUUID(), email = email, loginInfo)
-
         for {
-          user <- userService.save(user)
-          authInfo <- authInfoRepository.add(loginInfo, authInfo)
+          user <- userService.save(User(userID = UUID.randomUUID(), name = email, loginInfo))
+          authInfo <- authInfoRepository.add(loginInfo, passwordHasher.hash(password))
           authenticator <- silhouette.env.authenticatorService.create(loginInfo)
           token <- silhouette.env.authenticatorService.init(authenticator)
           result <- silhouette.env.authenticatorService.embed(token, Ok(token))
         } yield {
           silhouette.env.eventBus.publish(SignUpEvent(user, request))
+          silhouette.env.eventBus.publish(LoginEvent(user, request))
           result
         }
     }

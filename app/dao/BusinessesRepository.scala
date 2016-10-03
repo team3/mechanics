@@ -5,7 +5,7 @@ import javax.inject.Inject
 import play.api.libs.json.{JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.collection.JSONCollection
-import reactivemongo.api.ReadPreference
+import reactivemongo.api.{DB, ReadPreference}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 
@@ -20,11 +20,11 @@ trait BusinessesRepository {
   def update(old: BSONDocument, document: BSONDocument): Future[WriteResult]
 }
 
-class MongoDbBusinessesRepository @Inject()(val reactiveMongoApi: ReactiveMongoApi) extends BusinessesRepository {
+class MongoDbBusinessesRepository @Inject()(db: DB) extends BusinessesRepository {
 
   import play.modules.reactivemongo.json._
 
-  protected val collection = reactiveMongoApi.db.collection[JSONCollection]("businesses")
+  protected val collection = db.collection[JSONCollection]("businesses")
 
   override def find(): Future[List[JsObject]] =
     collection.find(Json.obj())
