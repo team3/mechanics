@@ -2,10 +2,10 @@ package controllers
 
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.JWTAuthenticator
+import com.mohiva.play.silhouette.api.Silhouette
 import dao.MongoDbBusinessesRepository
-import model.{Business, User}
+import model.Business
+import modules.JWTEnv
 import play.api.i18n.MessagesApi
 import play.api.libs.json.Json
 import play.api.mvc._
@@ -16,8 +16,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class BusinessesController @Inject()(val reactiveMongoApi: ReactiveMongoApi,
                                      val messagesApi: MessagesApi,
-                                     val env: Environment[User, JWTAuthenticator])
-  extends Controller with MongoController with ReactiveMongoComponents with Silhouette[User, JWTAuthenticator] {
+                                     silhouette: Silhouette[JWTEnv])
+  extends Controller with MongoController with ReactiveMongoComponents {
 
   val businessesRepository = new MongoDbBusinessesRepository(reactiveMongoApi)
 
@@ -27,7 +27,7 @@ class BusinessesController @Inject()(val reactiveMongoApi: ReactiveMongoApi,
       .recover { case _ => BadRequest("Error") }
   }
 
-  def save(id: String) = Action.async { implicit request =>
+  def save(id: String) = silhouette.SecuredAction.async { implicit request =>
     import Business.Fields._
 
     val business = request.body.asJson.get.as[Business]

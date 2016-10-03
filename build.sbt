@@ -8,7 +8,7 @@ scalaVersion := "2.11.7"
 
 val reactiveMongoVersion = "0.11.14"
 
-val playSilhouetteVersion = "3.0.0"
+val playSilhouetteVersion = "4.0.0"
 
 val scalaGuiceVersion = "4.0.0"
 
@@ -19,6 +19,8 @@ libraryDependencies ++= Seq(jdbc, cache, ws, specs2 % Test)
 libraryDependencies ++= Seq(
   "org.reactivemongo" %% "play2-reactivemongo" % reactiveMongoVersion,
   "com.mohiva" %% "play-silhouette" % playSilhouetteVersion,
+  "com.mohiva" %% "play-silhouette-password-bcrypt" % playSilhouetteVersion,
+  "com.mohiva" %% "play-silhouette-persistence" % playSilhouetteVersion,
   "com.mohiva" %% "play-silhouette-testkit" % playSilhouetteVersion % "test",
   "net.codingwell" %% "scala-guice" % scalaGuiceVersion,
   "net.ceedubs" %% "ficus" % ficusVersion

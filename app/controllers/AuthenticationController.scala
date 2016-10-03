@@ -9,28 +9,25 @@ import com.mohiva.play.silhouette.api.{Environment, LoginInfo, SignUpEvent, Silh
 import com.mohiva.play.silhouette.impl.authenticators.JWTAuthenticator
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import model.User
+import modules.JWTEnv
 import play.api.i18n.MessagesApi
-import play.api.mvc.Action
+import play.api.mvc.{Action, Controller}
 import service.UserService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class AuthenticationController @Inject()(val messagesApi: MessagesApi,
-                                         val env: Environment[User, JWTAuthenticator],
+                                         silhouette: Silhouette[JWTEnv],
                                          userService: UserService,
                                          authInfoRepository: AuthInfoRepository,
-                                         passwordHasher: PasswordHasher) extends Silhouette[User, JWTAuthenticator] {
+                                         passwordHasher: PasswordHasher) extends Controller {
 
-  def startSignUp = UserAwareAction.async { implicit request =>
-    Future.successful(request.identity match {
-      case Some(user) => Redirect(routes.Application.index())
-      case None => Ok("Form")
-    })
-  }
 
   def signUp = Action.async { implicit request =>
-    val email: String = "andr.parkhomenko@gmail.com"
+
+    // read user and password from configuration
+    val email: String = "andr.parkhomenko1@gmail.com"
     val password: String = "password"
 
     val loginInfo = LoginInfo(CredentialsProvider.ID, email)
@@ -45,11 +42,11 @@ class AuthenticationController @Inject()(val messagesApi: MessagesApi,
         for {
           user <- userService.save(user)
           authInfo <- authInfoRepository.add(loginInfo, authInfo)
-          authenticator <- env.authenticatorService.create(loginInfo)
-          value <- env.authenticatorService.init(authenticator)
-          result <- env.authenticatorService.embed(value, Ok(user.loginInfo.toString))
+          authenticator <- silhouette.env.authenticatorService.create(loginInfo)
+          token <- silhouette.env.authenticatorService.init(authenticator)
+          result <- silhouette.env.authenticatorService.embed(token, Ok(token))
         } yield {
-          env.eventBus.publish(SignUpEvent(user, request, request2Messages))
+          silhouette.env.eventBus.publish(SignUpEvent(user, request))
           result
         }
     }

@@ -21,8 +21,7 @@ trait UserRepository {
   def save(user: User): Future[User]
 }
 
-// TODO use dependency injection of db: DB provided by Mongo
-class MongoDbUserRepository @Inject()(val db: DB) extends UserRepository {
+class MongoDbUserRepository @Inject()(db: DB) extends UserRepository {
   val collection: JSONCollection = db.collection[JSONCollection]("users")
 
   override def find(loginInfo: LoginInfo): Future[Option[User]] = {

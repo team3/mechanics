@@ -1,15 +1,17 @@
 package modules
 
 import com.google.inject.{AbstractModule, Provides}
+import com.mohiva.play.silhouette.api.crypto.{AuthenticatorEncoder, Base64AuthenticatorEncoder}
 import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
 import com.mohiva.play.silhouette.api.services._
 import com.mohiva.play.silhouette.api.util._
-import com.mohiva.play.silhouette.api.{Environment, EventBus}
+import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.impl.authenticators._
-import com.mohiva.play.silhouette.impl.daos.DelegableAuthInfoDAO
 import com.mohiva.play.silhouette.impl.providers._
-import com.mohiva.play.silhouette.impl.repositories.DelegableAuthInfoRepository
 import com.mohiva.play.silhouette.impl.util._
+import com.mohiva.play.silhouette.password.BCryptPasswordHasher
+import com.mohiva.play.silhouette.persistence.daos.DelegableAuthInfoDAO
+import com.mohiva.play.silhouette.persistence.repositories.DelegableAuthInfoRepository
 import dao.{MongoDbUserRepository, PasswordInfoRepository, UserRepository}
 import model.User
 import net.ceedubs.ficus.Ficus._
@@ -20,8 +22,14 @@ import play.api.libs.concurrent.Execution.Implicits._
 import reactivemongo.api._
 import service.{UserService, UserServiceImpl}
 
+trait JWTEnv extends Env {
+  type I = User
+  type A = JWTAuthenticator
+}
+
 class SilhouetteModule extends AbstractModule with ScalaModule {
   override def configure(): Unit = {
+    bind[Silhouette[JWTEnv]].to[SilhouetteProvider[JWTEnv]]
     bind[UserRepository].to[MongoDbUserRepository]
     bind[UserService].to[UserServiceImpl]
     bind[DB].toInstance {
@@ -44,6 +52,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     bind[IDGenerator].toInstance(new SecureRandomIDGenerator())
     bind[PasswordHasher].toInstance(new BCryptPasswordHasher)
     bind[FingerprintGenerator].toInstance(new DefaultFingerprintGenerator(false))
+    bind[AuthenticatorEncoder].toInstance(new Base64AuthenticatorEncoder)
     bind[EventBus].toInstance(EventBus())
     bind[Clock].toInstance(Clock())
   }
@@ -51,16 +60,17 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
   @Provides def provideEnvironment(
                                     userService: UserService,
                                     authenticatorService: AuthenticatorService[JWTAuthenticator],
-                                    eventBus: EventBus): Environment[User, JWTAuthenticator] = {
-    Environment[User, JWTAuthenticator](userService, authenticatorService, Seq(), eventBus)
+                                    eventBus: EventBus): Environment[JWTEnv] = {
+    Environment[JWTEnv](userService, authenticatorService, Seq(), eventBus)
   }
 
   @Provides def provideAuthenticatorService(
+                                             authenticatorEncoder: AuthenticatorEncoder,
                                              idGenerator: IDGenerator,
                                              configuration: Configuration,
                                              clock: Clock): AuthenticatorService[JWTAuthenticator] = {
-    val config = configuration.underlying.as[JWTAuthenticatorSettings]("silhouette.authenticator")
-    new JWTAuthenticatorService(config, None, idGenerator, clock)
+    //val config: JWTAuthenticatorSettings = configuration.underlying.as[JWTAuthenticatorSettings]("silhouette.authenticator")
+    new JWTAuthenticatorService(new JWTAuthenticatorSettings(sharedSecret = "secret"), None, authenticatorEncoder, idGenerator, clock)
   }
 
   @Provides
@@ -68,7 +78,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
                                   authInfoRepository: AuthInfoRepository,
                                   passwordHasher: PasswordHasher): CredentialsProvider = {
 
-    new CredentialsProvider(authInfoRepository, passwordHasher, Seq(passwordHasher))
+    new CredentialsProvider(authInfoRepository, new PasswordHasherRegistry(passwordHasher))
   }
 
   @Provides def provideAuthInfoRepository(
