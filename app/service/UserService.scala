@@ -10,7 +10,7 @@ import model.User
 import scala.concurrent.Future
 
 trait UserService extends IdentityService[User] {
-  def save(user: User)
+  def save(user: User): Future[User]
 }
 
 class UserServiceImpl @Inject() (userRepository: UserRepository) extends UserService {

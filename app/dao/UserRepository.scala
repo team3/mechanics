@@ -18,7 +18,7 @@ trait UserRepository {
 
   def find(userId: UUID): Future[Option[User]]
 
-  def save(user: User)
+  def save(user: User): Future[User]
 }
 
 // TODO use dependency injection of db: DB provided by Mongo
@@ -29,8 +29,9 @@ class MongoDbUserRepository @Inject()(val db: DB) extends UserRepository {
     collection.find(Json.obj("loginInfo" -> loginInfo)).one[User]
   }
 
-  override def save(user: User) = {
+  override def save(user: User): Future[User] = {
     collection.insert(user)
+    Future.successful(user)
   }
 
   override def find(userId: UUID): Future[Option[User]] = collection.find(Json.obj("userId" -> userId)).one[User]
