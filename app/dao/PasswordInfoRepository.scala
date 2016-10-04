@@ -7,8 +7,8 @@ import com.mohiva.play.silhouette.api.util.PasswordInfo
 import com.mohiva.play.silhouette.persistence.daos.DelegableAuthInfoDAO
 import play.api.libs.json._
 import play.modules.reactivemongo.json._
-import play.modules.reactivemongo.json.collection._
 import reactivemongo.api._
+import reactivemongo.play.json.collection.JSONCollection
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

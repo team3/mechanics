@@ -7,13 +7,13 @@ import dao.MongoDbBusinessesRepository
 import model.Business
 import modules.JWTEnv
 import play.api.i18n.MessagesApi
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, Json, _}
 import play.api.mvc._
-import play.modules.reactivemongo.{MongoController, ReactiveMongoApi, ReactiveMongoComponents}
-import reactivemongo.api.DB
+import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.api._
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class BusinessesController @Inject()(val reactiveMongoApi: ReactiveMongoApi,
                                      val messagesApi: MessagesApi,
@@ -27,21 +27,29 @@ class BusinessesController @Inject()(val reactiveMongoApi: ReactiveMongoApi,
   }
 
   def save(id: String) = silhouette.SecuredAction.async { implicit request =>
-    import Business.Fields._
+    import model.Business.Fields._
 
-    val business = request.body.asJson.get.as[Business]
+    request.body.asJson.map { r =>
+      r.validate[Business] match {
+        case JsSuccess(business, _) =>
+          val document = BSONDocument(
+            Name -> business.name,
+            Address -> business.address,
+            Country -> business.country,
+            City -> business.city,
+            Email -> business.email,
+            Phone -> business.phone
+          )
 
-    val document = BSONDocument(
-      Name -> business.name,
-      Address -> business.address,
-      Country -> business.country,
-      City -> business.city,
-      Email -> business.email,
-      Phone -> business.phone
-    )
-
-    businessesRepository.update(BSONDocument(Id -> BSONObjectID(id)), document)
-      .map(result => Ok(Json.obj("success" -> result.ok)))
-      .recover { case e: Exception => Ok(Json.obj("error" -> e.getMessage)) }
+          businessesRepository.update(BSONDocument(Id -> BSONObjectID(id)), document)
+            .map(result => Ok(Json.obj("success" -> result.ok)))
+            .recover {
+              case e: Exception => Ok(Json.obj("business error" -> e.getMessage))
+            }
+        case err@JsError(_) => Future.successful(BadRequest(JsError.toJson(err)))
+      }
+    }.getOrElse(Future.successful(BadRequest("Invalid request")))
   }
 }
+
+

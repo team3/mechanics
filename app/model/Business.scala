@@ -1,34 +1,33 @@
 package model
 
 import play.api.libs.json._
+import play.api.libs.functional.syntax._
 
 case class Business(name: String, address: String, country: String, city: String, email: String, phone: Int)
 
 object Business {
 
-  implicit object BusinessFormat extends Format[Business] {
-    override def writes(business: Business): JsValue = {
-      JsObject(Seq(
-        "name" -> JsString(business.name),
-        "address" -> JsString(business.address),
-        "country" -> JsString(business.country),
-        "city" -> JsString(business.city),
-        "email" -> JsString(business.email),
-        "phone" -> JsNumber(business.phone)
-      ))
-    }
 
-    override def reads(json: JsValue): JsResult[Business] = {
-      JsSuccess(Business(
-        (json \ "name").as[String],
-        (json \ "address").as[String],
-        (json \ "country").as[String],
-        (json \ "city").as[String],
-        (json \ "email").as[String],
-        (json \ "phone").as[Int]
-      ))
-    }
+  def businessWrites(business: Business): JsValue = {
+    JsObject(Seq(
+      "name" -> JsString(business.name),
+      "address" -> JsString(business.address),
+      "country" -> JsString(business.country),
+      "city" -> JsString(business.city),
+      "email" -> JsString(business.email),
+      "phone" -> JsNumber(business.phone)
+    ))
   }
+
+  implicit val businessReads: Reads[Business] = (
+    (__ \ "name").read[String] ~
+      (__ \ "address").read[String] ~
+      (__ \ "country").read[String] ~
+      (__ \ "city").read[String] ~
+      (__ \ "email").read[String] ~
+      (__ \ "phone").read[Int]
+    ) (Business.apply _)
+
 
   object Fields {
     val Id = "_id"
@@ -39,4 +38,5 @@ object Business {
     val Email = "email"
     val Phone = "phone"
   }
+
 }

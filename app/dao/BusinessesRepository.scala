@@ -4,11 +4,10 @@ import javax.inject.Inject
 
 import play.api.libs.json.{JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
-import play.modules.reactivemongo.json.collection.JSONCollection
 import reactivemongo.api.{DB, ReadPreference}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
-
+import reactivemongo.play.json.collection.JSONCollection
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

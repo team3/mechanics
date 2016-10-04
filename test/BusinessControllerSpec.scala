@@ -1,42 +1,77 @@
 import java.util.UUID
 
-import com.mohiva.play.silhouette.api.LoginInfo
-import com.mohiva.play.silhouette.impl.authenticators.JWTAuthenticator
-import com.mohiva.play.silhouette.test.FakeEnvironment
+import com.google.inject.AbstractModule
+import com.mohiva.play.silhouette.api._
+import com.mohiva.play.silhouette.test._
 import controllers.BusinessesController
+import dao.BusinessesRepository
+import model.Business.Fields._
 import model.User
 import modules.JWTEnv
+import net.codingwell.scalaguice.ScalaModule
+import org.specs2.execute.Results
 import org.specs2.mock.Mockito
-import play.api.test.{FakeHeaders, FakeRequest, PlaySpecification, WithApplication}
-import com.mohiva.play.silhouette.test._
+import org.specs2.specification.Scope
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
+import play.api.mvc.Result
+import play.api.test.{FakeRequest, PlaySpecification, WithApplication}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class BusinessControllerSpec extends PlaySpecification with Mockito {
+class BusinessControllerSpec extends PlaySpecification with Mockito with Results {
   "The `save` method" should {
-    "return status 401 if no authenticator was found" in new WithApplication {
-      val identity = User(userID = UUID.randomUUID(), name = "test", loginInfo = LoginInfo("credentials", "test@gmail.com"))
-      val env = FakeEnvironment[JWTEnv](Seq(identity.loginInfo -> identity))
-      val request = FakeRequest()
+    "return status 401 if no authenticator was found" in new Context {
+      new WithApplication(application) {
+        val businessObj = Json.obj(Name -> "test", Address -> "abc", Country -> "USA", City -> "NY", Email -> "a@a.com", Phone -> 123)
+        val request = FakeRequest().withBody(businessObj)
+        val controller = app.injector.instanceOf[BusinessesController]
+        val result = controller.save("57f0f0a79e6e4aa2c730de25")(request).run()
 
-      val controller = app.injector.instanceOf[BusinessesController]
-      val result = controller.save("123")(request)
+        status(result) must equalTo(UNAUTHORIZED)
+      }
+    }
 
-      status(result) must equalTo(UNAUTHORIZED)
+    "return status 200 if authenticator was found" in new Context {
+      new WithApplication(application) {
+        val businessObj = Json.obj(Name -> "test", Address -> "abc", Country -> "USA", City -> "NY", Email -> "a@a.com", Phone -> 123)
+        val request = FakeRequest().withAuthenticator[JWTEnv](identity.loginInfo).withJsonBody(businessObj)
+        val controller = app.injector.instanceOf[BusinessesController]
+        val result = controller.save("57f0f0a79e6e4aa2c730de25").apply(request)
+
+        status(result) must equalTo(OK)
+      }
+    }
+
+    "return status 400 if request is invalid" in new Context {
+      new WithApplication(application) {
+        val request = FakeRequest().withAuthenticator[JWTEnv](identity.loginInfo).withJsonBody(Json.obj())
+        val controller = app.injector.instanceOf[BusinessesController]
+        val result:Future[Result] = controller.save("57f0f0a79e6e4aa2c730de25").apply(request)
+
+        status(result) must equalTo(BAD_REQUEST)
+      }
     }
   }
 
-  "The `save` method" should {
-    "return status 200 if authenticator was found" in new WithApplication {
-      val loginInfo = LoginInfo("credentials", "test@gmail.com")
-      val identity = User(userID = UUID.randomUUID(), name = "test", loginInfo)
-      implicit val env = FakeEnvironment[JWTEnv](Seq(identity.loginInfo -> identity))
-      val request = FakeRequest().withAuthenticator[JWTEnv](identity.loginInfo)
+  trait Context extends Scope {
 
-      val controller = app.injector.instanceOf[BusinessesController]
-      val result = controller.save("123")(request)
+    class FakeModule extends AbstractModule with ScalaModule {
 
-      status(result) must equalTo(OK)
+      def configure() = {
+        bind[Environment[JWTEnv]].toInstance(env)
+        bind[BusinessesRepository].toInstance(mock[BusinessesRepository])
+      }
     }
+
+    val identity = User(userID = UUID.randomUUID(), name = "name", loginInfo = LoginInfo("facebook", "user@facebook.com"))
+
+    implicit val env: Environment[JWTEnv] = new FakeEnvironment[JWTEnv](Seq(identity.loginInfo -> identity))
+
+    lazy val application = new GuiceApplicationBuilder()
+      .overrides(new FakeModule)
+      .build()
   }
+
 }

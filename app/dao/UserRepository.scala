@@ -6,7 +6,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.LoginInfo
 import model.User
 import play.api.libs.json.Json
-import play.modules.reactivemongo.json.collection.JSONCollection
+import reactivemongo.play.json.collection.JSONCollection
 import reactivemongo.api.DB
 
 import scala.concurrent.Future
