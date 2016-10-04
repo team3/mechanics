@@ -21,9 +21,9 @@ class BusinessesController @Inject()(val reactiveMongoApi: ReactiveMongoApi,
                                      silhouette: Silhouette[JWTEnv]) extends Controller {
 
   def search(term: String) = Action.async { implicit request =>
-    businessesRepository.find()
+    businessesRepository.find(term)
       .map(businesses => Ok("" + businesses.map(b => b.values)))
-      .recover { case _ => BadRequest("Error") }
+      .recover { case e: Exception => BadRequest(e.getMessage) }
   }
 
   def save(id: String) = silhouette.SecuredAction.async { implicit request =>

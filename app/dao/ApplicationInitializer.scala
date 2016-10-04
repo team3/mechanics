@@ -13,7 +13,6 @@ class ApplicationInitializer @Inject()(val reactiveMongoApi: ReactiveMongoApi) e
 
   def collection = reactiveMongoApi.db.collection[JSONCollection]("businesses")
 
-
   val businesses = List(
     Json.obj(
       "name" -> "B1",
@@ -34,15 +33,11 @@ class ApplicationInitializer @Inject()(val reactiveMongoApi: ReactiveMongoApi) e
   )
 
   override def onStart(app: Application) {
-    Logger.info("Application has started")
-
     collection.bulkInsert(businesses.toStream, ordered = true).
       foreach(i => Logger.info("Database was initialized"))
   }
 
   override def onStop(app: Application) {
-    Logger.info("Application shutdown...")
-
     collection.drop().onComplete {
       case _ => Logger.info("Database collection dropped")
     }

@@ -3,16 +3,16 @@ package dao
 import javax.inject.Inject
 
 import play.api.libs.json.{JsObject, Json}
-import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.api.{DB, ReadPreference}
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.{DB, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.collection.JSONCollection
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait BusinessesRepository {
-  def find(): Future[List[JsObject]]
+  def find(term: String): Future[List[JsObject]]
 
   def create(document: BSONDocument): Future[WriteResult]
 
@@ -25,8 +25,8 @@ class MongoDbBusinessesRepository @Inject()(db: DB) extends BusinessesRepository
 
   protected val collection = db.collection[JSONCollection]("businesses")
 
-  override def find(): Future[List[JsObject]] =
-    collection.find(Json.obj())
+  override def find(term: String): Future[List[JsObject]] =
+    collection.find(Json.obj("$text" -> Json.obj("$search" -> term)))
       .cursor[JsObject](ReadPreference.Primary)
       .collect[List]()
 
