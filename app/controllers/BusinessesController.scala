@@ -20,10 +20,17 @@ class BusinessesController @Inject()(val reactiveMongoApi: ReactiveMongoApi,
                                      val businessesRepository: MongoDbBusinessesRepository,
                                      silhouette: Silhouette[JWTEnv]) extends Controller {
 
-  def search(term: String) = Action.async { implicit request =>
-    businessesRepository.find(term)
-      .map(businesses => Ok("" + businesses.map(b => b.values)))
+  private[BusinessesController] def display(objects: Future[List[JsObject]]) =
+    objects
+      .map(obj => Ok(obj.map(b => b.values).mkString(",")))
       .recover { case e: Exception => BadRequest(e.getMessage) }
+
+  def search(term: String) = Action.async { implicit request =>
+    display(businessesRepository.find(term))
+  }
+
+  def all = Action.async { implicit request =>
+    display(businessesRepository.find(""))
   }
 
   def save(id: String) = silhouette.SecuredAction.async { implicit request =>

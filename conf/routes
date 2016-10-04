@@ -2,6 +2,8 @@ GET         /assets/*file                controllers.Assets.at(path="/public", f
 
 GET         /api/businesses/:term        controllers.BusinessesController.search(term: String)
 
+GET         /api/businesses              controllers.BusinessesController.all
+
 POST        /api/businesses/:id          controllers.BusinessesController.save(id: String)
 
 POST        /auth/signup                 controllers.AuthenticationController.signUp

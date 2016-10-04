@@ -10,7 +10,7 @@ import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import model.{LoginUser, User}
 import modules.JWTEnv
 import play.api.i18n.MessagesApi
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, Json}
 import play.api.mvc.{Action, Controller}
 import service.UserService
 
@@ -45,7 +45,7 @@ class AuthenticationController @Inject()(val messagesApi: MessagesApi,
           }
       }
     }.recoverTotal {
-      case error => Future.successful(BadRequest(Json.obj("error" -> "Invalid request")))
+      case error => Future.successful(BadRequest(JsError.toJson(error)))
     }
   }
 }

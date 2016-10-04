@@ -25,10 +25,12 @@ class MongoDbBusinessesRepository @Inject()(db: DB) extends BusinessesRepository
 
   protected val collection = db.collection[JSONCollection]("businesses")
 
-  override def find(term: String): Future[List[JsObject]] =
-    collection.find(Json.obj("$text" -> Json.obj("$search" -> term)))
+  override def find(term: String): Future[List[JsObject]] = {
+    val query = if (term == "") Json.obj() else Json.obj("$text" -> Json.obj("$search" -> term))
+    collection.find(query)
       .cursor[JsObject](ReadPreference.Primary)
       .collect[List]()
+  }
 
   override def create(document: BSONDocument): Future[WriteResult] = {
     collection.update(BSONDocument("_id" -> document.get("_id").getOrElse(BSONObjectID.generate)), document, upsert = true)
